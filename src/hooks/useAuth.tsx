@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { db } from "../lib/db";
 import { resetClient } from "../lib/telegram";
+import { ensurePersistentStorage } from "../lib/persistence";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -20,6 +21,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
+    // Ask the browser to exempt our IndexedDB data (Telegram session,
+    // api credentials, cached files) from automatic eviction. This runs
+    // once per app load, before we check for an existing session, so
+    // that once the user IS authenticated, the session is as durable
+    // as the browser allows.
+    ensurePersistentStorage();
+
     db.credentials.get(1).then((creds) => {
       if (creds?.sessionString) {
         setIsAuthenticated(true);
