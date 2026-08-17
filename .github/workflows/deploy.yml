@@ -28,11 +28,7 @@ jobs:
           node-version: 20
           cache: npm
 
-      # TEMPORARY: using npm install instead of npm ci for ONE run so that
-      # package-lock.json gets regenerated to include the newly added
-      # vite-plugin-pwa dependency. Once this run succeeds and commits/
-      # reflects the updated lock file, switch this back to `npm ci`.
-      - run: npm install
+      - run: npm ci
 
       - run: npm run build
 
