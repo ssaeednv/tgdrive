@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
+import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 // On GitHub Actions, GITHUB_REPOSITORY is "owner/repo-name"
@@ -22,6 +23,36 @@ export default defineConfig({
     nodePolyfills({
       include: ['buffer', 'process', 'stream', 'util', 'events', 'path', 'crypto'],
       globals: { Buffer: true, global: true, process: true },
+    }),
+    VitePWA({
+      registerType: 'autoUpdate',
+      base: repoName,
+      manifest: {
+        name: 'TG Drive',
+        short_name: 'TGDrive',
+        description: 'Your Telegram account as unlimited cloud storage',
+        start_url: repoName,
+        scope: repoName,
+        display: 'standalone',
+        background_color: '#0f1115',
+        theme_color: '#0f1115',
+        icons: [
+          {
+            src: 'favicon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: 'favicon-192.png',
+            sizes: '512x512',
+            type: 'image/png',
+          },
+        ],
+      },
+      workbox: {
+        navigateFallbackDenylist: [/^\/api\//],
+        runtimeCaching: [],
+      },
     }),
   ],
 })
