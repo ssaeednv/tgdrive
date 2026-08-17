@@ -1,37 +1,225 @@
-<!doctype html>
-<html lang="en" data-theme="night">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TGDrive</title>
-    <script>
-      // Restore path from GitHub Pages 404.html redirect
-      (function () {
-        var p = new URLSearchParams(window.location.search).get('p');
-        if (p) {
-          var base = window.location.pathname.replace(/\/$/, '');
-          window.history.replaceState(null, '', base + p);
-        }
-      })();
-    </script>
-    <script>
-      (function() {
-        var base = document.querySelector('base') ? document.querySelector('base').href : '/';
-        // Favicons — injected via JS so they always resolve from the true root
-        var root = window.location.origin + '/' + window.location.pathname.split('/')[1];
-        function addLink(rel, type, href) {
-          var l = document.createElement('link');
-          l.rel = rel; if (type) l.type = type; l.href = href;
-          document.head.appendChild(l);
-        }
-        addLink('icon', 'image/x-icon', root + '/favicon.ico');
-        addLink('icon', 'image/svg+xml', root + '/favicon.svg');
-        addLink('apple-touch-icon', null, root + '/favicon-192.png');
-      })();
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TG Drive من — فضای ذخیره‌سازی تلگرام</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1f232c;
+    --border: #2a2f3a;
+    --text: #e8eaed;
+    --muted: #9aa2b1;
+    --accent: #2ea6ff;
+    --accent-2: #1c8adb;
+    --danger: #ff5c5c;
+    --ok: #35d07f;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Vazirmatn", Tahoma, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  header h1 { font-size: 20px; margin: 0; }
+  header .status { font-size: 13px; color: var(--muted); }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+  /* Login card */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    max-width: 460px;
+    margin: 60px auto;
+  }
+  .card h2 { margin-top: 0; font-size: 18px; }
+  .card p.hint { color: var(--muted); font-size: 13px; line-height: 1.8; }
+  label { display: block; font-size: 13px; margin: 14px 0 6px; color: var(--muted); }
+  input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    font-size: 14px;
+  }
+  input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .btn-primary { background: var(--accent); color: #06121c; width: 100%; margin-top: 18px; }
+  .btn-primary:hover { background: var(--accent-2); }
+  .btn-secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+  .error { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 18px; }
+  .step-indicator { display:flex; gap:6px; margin-bottom:16px; }
+  .step-dot { width:8px; height:8px; border-radius:50%; background: var(--border); }
+  .step-dot.active { background: var(--accent); }
+
+  /* Drive UI */
+  .drive-hidden { display: none; }
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .breadcrumb { flex: 1; color: var(--muted); font-size: 14px; }
+  .breadcrumb span { cursor: pointer; color: var(--accent); }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+  }
+  .item {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s;
+    position: relative;
+  }
+  .item:hover { border-color: var(--accent); }
+  .item .icon { font-size: 34px; margin-bottom: 8px; }
+  .item .name { font-size: 13px; word-break: break-word; }
+  .item .meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .item .del {
+    position: absolute; top: 6px; left: 6px;
+    background: transparent; color: var(--danger); border: none;
+    font-size: 12px; display: none;
+  }
+  .item:hover .del { display: block; }
+
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 26px;
+    text-align: center;
+    color: var(--muted);
+    margin-bottom: 20px;
+    transition: border-color .15s, color .15s;
+  }
+  .dropzone.drag { border-color: var(--accent); color: var(--accent); }
+
+  .upload-list { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .upload-row { background: var(--panel-2); border-radius: 8px; padding: 8px 12px; font-size: 12px; }
+  .progress-bar { background: var(--border); height: 6px; border-radius: 4px; margin-top: 6px; overflow: hidden; }
+  .progress-fill { background: var(--accent); height: 100%; width: 0%; transition: width .2s; }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6);
+    display: flex; align-items: center; justify-content: center; z-index: 50;
+  }
+  .modal { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; width: 320px; }
+
+  footer { text-align:center; color: var(--muted); font-size: 12px; padding: 30px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📦 TG Drive من</h1>
+  <div class="status" id="statusLine">آفلاین</div>
+</header>
+
+<div class="container">
+
+  <!-- ===== LOGIN FLOW ===== -->
+  <div id="loginCard" class="card">
+    <div class="step-indicator">
+      <div class="step-dot active" id="dot1"></div>
+      <div class="step-dot" id="dot2"></div>
+      <div class="step-dot" id="dot3"></div>
+    </div>
+
+    <!-- Step 1: API credentials -->
+    <div id="step1">
+      <h2>مرحله ۱ — دریافت اطلاعات API</h2>
+      <p class="hint">
+        به آدرس <b>my.telegram.org</b> بروید → وارد شوید → «API development tools» → یک اپ بسازید
+        و مقدار <b>api_id</b> و <b>api_hash</b> را کپی کنید.
+      </p>
+      <label>API ID</label>
+      <input id="apiId" type="text" placeholder="مثلاً 123456" />
+      <label>API Hash</label>
+      <input id="apiHash" type="text" placeholder="مثلاً 0123456789abcdef0123456789abcdef" />
+      <button class="btn-primary" onclick="saveCredentials()">ادامه</button>
+      <div class="error" id="err1"></div>
+    </div>
+
+    <!-- Step 2: Phone -->
+    <div id="step2" class="drive-hidden">
+      <h2>مرحله ۲ — ورود با شماره تلفن</h2>
+      <p class="hint">شماره تلفن تلگرام خود را با کد کشور وارد کنید (مثلاً +989123456789).</p>
+      <label>شماره تلفن</label>
+      <input id="phone" type="text" placeholder="+989123456789" />
+      <button class="btn-primary" onclick="sendCode()">ارسال کد تایید</button>
+      <div class="error" id="err2"></div>
+    </div>
+
+    <!-- Step 3: OTP -->
+    <div id="step3" class="drive-hidden">
+      <h2>مرحله ۳ — تایید کد</h2>
+      <p class="hint">کدی که در اپلیکیشن تلگرام دریافت کرده‌اید را وارد کنید.</p>
+      <label>کد تایید</label>
+      <input id="otp" type="text" placeholder="12345" />
+      <label id="pwLabel" class="drive-hidden">رمز دو مرحله‌ای (2FA)</label>
+      <input id="password2fa" type="password" class="drive-hidden" placeholder="در صورت فعال بودن" />
+      <button class="btn-primary" onclick="verifyCode()">ورود</button>
+      <div class="error" id="err3"></div>
+    </div>
+  </div>
+
+  <!-- ===== DRIVE UI ===== -->
+  <div id="driveApp" class="drive-hidden">
+    <div class="toolbar">
+      <div class="breadcrumb" id="breadcrumb">📁 ریشه</div>
+      <button class="btn-secondary" onclick="openNewFolderModal()">+ پوشه جدید</button>
+      <button class="btn-danger" onclick="logout()">خروج</button>
+    </div>
+
+    <div class="dropzone" id="dropzone">
+      فایل را اینجا رها کنید یا کلیک کنید برای انتخاب
+      <input type="file" id="fileInput" multiple style="display:none" />
+      <div class="upload-list" id="uploadList"></div>
+    </div>
+
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div id="modalRoot"></div>
+</div>
+
+<footer>
+  ساخته‌شده بر پایهٔ ایدهٔ TGDrive — بدون سرور، داده‌ها فقط در مرورگر و کانال‌های تلگرام شما ذخیره می‌شوند.
+</footer>
+
+<!-- GramJS browser bundle -->
+<script src="https://unpkg.com/telegram@2.26.22/gramjs.min.js"></script>
+<script src="app.js"></script>
+</body>
 </html>
